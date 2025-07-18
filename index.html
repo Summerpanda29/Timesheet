@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timesheet App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100 text-gray-800 min-h-screen">
+  <div class="max-w-5xl mx-auto p-6">
+    <h1 class="text-4xl font-extrabold mb-8 text-center text-purple-700">⏰ Timesheet App</h1>
+
+    <!-- Login -->
+    <div id="loginSection" class="bg-white p-6 rounded-2xl shadow-lg max-w-md mx-auto">
+      <h2 class="text-2xl font-semibold mb-4 text-center text-gray-700">🔐 Login</h2>
+      <input type="text" id="loginUsername" placeholder="Username" class="block w-full mb-3 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
+      <input type="password" id="loginPassword" placeholder="Password" class="block w-full mb-4 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
+      <button onclick="login()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition duration-200">Login</button>
+    </div>
+
+    <!-- User Section -->
+    <div id="userSection" class="hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-semibold text-gray-700">👤 Welcome, <span id="usernameDisplay"></span></h2>
+        <button onclick="logout()" class="text-sm text-red-600 underline">Logout</button>
+      </div>
+      <div class="flex gap-4 mb-4">
+        <button onclick="clockIn()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition">Clock In</button>
+        <button onclick="clockOut()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition">Clock Out</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white shadow rounded-lg">
+          <thead>
+            <tr class="bg-purple-200 text-left">
+              <th class="p-3">Clock In</th>
+              <th class="p-3">Clock Out</th>
+              <th class="p-3">Duration</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Admin Section -->
+    <div id="adminSection" class="hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-semibold text-gray-700">🛠️ Admin Dashboard</h2>
+        <button onclick="logout()" class="text-sm text-red-600 underline">Logout</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-2xl shadow">
+          <h3 class="font-bold mb-4 text-gray-700">➕ Add User</h3>
+          <input type="text" id="newUsername" placeholder="Username" class="w-full mb-3 p-3 border rounded-lg" />
+          <input type="text" id="newPassword" placeholder="Password" class="w-full mb-3 p-3 border rounded-lg" />
+          <select id="newRole" class="w-full mb-4 p-3 border rounded-lg">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button onclick="addUser()" class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">Add User</button>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow">
+          <h3 class="font-bold mb-4 text-gray-700">👥 User List</h3>
+          <ul id="userList" class="space-y-3"></ul>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow mb-6">
+        <h3 class="font-bold mb-4 text-gray-700">🔍 Filters</h3>
+        <div class="flex flex-wrap gap-4">
+          <select id="filterUser" class="p-3 border rounded-lg"></select>
+          <input type="date" id="filterFrom" class="p-3 border rounded-lg" />
+          <input type="date" id="filterTo" class="p-3 border rounded-lg" />
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="missedOnly" /> Missed Clock Out
+          </label>
+          <button onclick="applyFilters()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">Apply</button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white shadow rounded-lg">
+          <thead>
+            <tr class="bg-purple-200 text-left">
+              <th class="p-3">User</th>
+              <th class="p-3">Clock In</th>
+              <th class="p-3">Clock Out</th>
+              <th class="p-3">Duration</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const users = [
+      { username: "admin", password: "admin123", role: "admin" },
+      { username: "john", password: "1234", role: "user" },
+      { username: "ralph", password: "1234", role: "user" },
+      { username: "elwin", password: "1234", role: "user" },
+      { username: "ton", password: "1234", role: "user" },
+    ];
+
+    let currentUser = null;
+    let timeLogs = [];
+
+    function login() {
+      const username = document.getElementById("loginUsername").value;
+      const password = document.getElementById("loginPassword").value;
+      const user = users.find(u => u.username === username && u.password === password);
+      if (!user) return alert("Invalid login");
+
+      currentUser = user;
+      document.getElementById("loginSection").style.display = "none";
+      document.getElementById("usernameDisplay").textContent = currentUser.username;
+
+      if (user.role === "admin") {
+        document.getElementById("adminSection").style.display = "block";
+        renderUserList();
+        renderAdminLogs();
+      } else {
+        document.getElementById("userSection").style.display = "block";
+        renderUserLogs();
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById("loginSection").style.display = "block";
+      document.getElementById("userSection").style.display = "none";
+      document.getElementById("adminSection").style.display = "none";
+    }
+
+    function clockIn() {
+      timeLogs.push({ user: currentUser.username, in: new Date(), out: null });
+      renderUserLogs();
+    }
+
+    function clockOut() {
+      const log = timeLogs.find(t => t.user === currentUser.username && !t.out);
+      if (log) {
+        log.out = new Date();
+      }
+      renderUserLogs();
+    }
+
+    function renderUserLogs() {
+      const tbody = document.getElementById("userTableBody");
+      tbody.innerHTML = "";
+      timeLogs.filter(t => t.user === currentUser.username).forEach(t => {
+        const row = `<tr>
+          <td class="p-3">${t.in ? t.in.toLocaleString() : ""}</td>
+          <td class="p-3">${t.out ? t.out.toLocaleString() : ""}</td>
+          <td class="p-3">${t.out ? formatDuration(t.out - t.in) : "In Progress"}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function formatDuration(ms) {
+      const mins = Math.floor(ms / 60000);
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return `${hrs}h ${remMins}m`;
+    }
+
+    function addUser() {
+      const uname = document.getElementById("newUsername").value;
+      const pword = document.getElementById("newPassword").value;
+      const role = document.getElementById("newRole").value;
+      if (!uname || !pword) return alert("Please fill in all fields");
+      users.push({ username: uname, password: pword, role });
+      renderUserList();
+    }
+
+    function renderUserList() {
+      const list = document.getElementById("userList");
+      list.innerHTML = "";
+      users.forEach(u => {
+        const item = document.createElement("li");
+        item.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg shadow";
+        item.innerHTML = `<span>${u.username} (${u.role})</span>
+          <button onclick="deleteUser('${u.username}')" class="text-red-500 hover:underline">Delete</button>`;
+        list.appendChild(item);
+      });
+    }
+
+    function deleteUser(name) {
+      const i = users.findIndex(u => u.username === name);
+      if (i !== -1) users.splice(i, 1);
+      renderUserList();
+    }
+
+    function renderAdminLogs() {
+      const tbody = document.getElementById("adminTableBody");
+      tbody.innerHTML = "";
+      timeLogs.forEach(t => {
+        const row = `<tr>
+          <td class="p-3">${t.user}</td>
+          <td class="p-3">${t.in ? t.in.toLocaleString() : ""}</td>
+          <td class="p-3">${t.out ? t.out.toLocaleString() : ""}</td>
+          <td class="p-3">${t.out ? formatDuration(t.out - t.in) : "In Progress"}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+  </script>
+</body>
+</html>
